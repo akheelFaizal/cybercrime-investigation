@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card mt-4">
+            <div class="card-header bg-primary text-white">
+                <h4>{{ title }}</h4>
+            </div>
+            <div class="card-body">
+                <p class="card-text">
+                    <strong>Report:</strong> {{ object.title }}<br>
+                    <strong>Reporter:</strong> {{ object.reporter.username }}<br>
+                    <strong>Current Status:</strong> {{ object.get_status_display }}
+                </p>
+                <hr>
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-success">Update Case</button>
+                        <a href="{% url 'admin_case_list' %}" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,162 @@
+:root {
+    --bg-dark: #0d1117;
+    --bg-card: #161b22;
+    --text-main: #c9d1d9;
+    --text-muted: #8b949e;
+    --border-color: #30363d;
+    --accent-primary: #58a6ff;
+    /* Neon Blue */
+    --accent-success: #2ea043;
+    /* Neon Green */
+    --accent-warning: #d29922;
+    /* Neon Orange */
+    --accent-danger: #f85149;
+    /* Neon Red */
+    --input-bg: #0d1117;
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    color: var(--text-main);
+}
+
+a {
+    color: var(--accent-primary);
+    text-decoration: none;
+}
+
+a:hover {
+    color: #79c0ff;
+    text-decoration: underline;
+}
+
+/* Card Styling */
+.card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.card-header {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid var(--border-color);
+    font-weight: 600;
+}
+
+/* Table Styling */
+.table {
+    color: var(--text-main);
+    border-color: var(--border-color);
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--text-main);
+}
+
+/* Forms */
+.form-control,
+.form-select {
+    background-color: var(--input-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+}
+
+.form-control:focus,
+.form-select:focus {
+    background-color: var(--input-bg);
+    border-color: var(--accent-primary);
+    color: var(--text-main);
+    box-shadow: 0 0 0 0.25rem rgba(88, 166, 255, 0.25);
+}
+
+/* Navbar & Sidebar */
+.navbar-dark .navbar-brand {
+    color: var(--text-main);
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.sidebar .nav-link {
+    color: var(--text-muted);
+}
+
+.sidebar .nav-link.active {
+    color: var(--accent-primary);
+    background-color: rgba(88, 166, 255, 0.1);
+    border-right: 3px solid var(--accent-primary);
+}
+
+.sidebar .nav-link:hover {
+    color: var(--text-main);
+}
+
+/* Badges */
+.badge {
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
+
+/* Buttons */
+.btn-primary {
+    background-color: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+.btn-success {
+    background-color: var(--accent-success);
+    border-color: var(--accent-success);
+}
+
+.btn-warning {
+    background-color: var(--accent-warning);
+    border-color: var(--accent-warning);
+    color: #0d1117;
+}
+
+.btn-danger {
+    background-color: var(--accent-danger);
+    border-color: var(--accent-danger);
+}
+
+.btn-outline-primary {
+    color: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--accent-primary);
+    color: #fff;
+}
+
+/* Login Container */
+.login-container {
+    max-width: 400px;
+    margin: 50px auto;
+    padding: 30px;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(88, 166, 255, 0.1);
+}
+
+.status-badge {
+    padding: 0.4em 0.8em;
+    border-radius: 20px;
+}

@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Admin Overview</h1>
+    <div>
+        <a href="{% url 'user_list' %}" class="btn btn-outline-primary"><i class="bi bi-people-fill"></i> Manage
+            Users</a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-info mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Total Reports</h5>
+                <p class="card-text display-4">{{ total_reports }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-warning mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Pending</h5>
+                <p class="card-text display-4">{{ pending_cases }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <!-- Chart Section 1: Status -->
+    <div class="col-md-3">
+        <div class="card mb-4">
+            <div class="card-header">Case Status</div>
+            <div class="card-body">
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart Section 2: Assignment -->
+    <div class="col-md-3">
+        <div class="card mb-4">
+            <div class="card-header">Assignment</div>
+            <div class="card-body">
+                <canvas id="distChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart Section 3: Categories -->
+    <div class="col-md-3">
+        <div class="card mb-4">
+            <div class="card-header">By Category</div>
+            <div class="card-body">
+                <canvas id="catChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart Section 4: Trends -->
+    <div class="col-md-3">
+        <div class="card mb-4">
+            <div class="card-header">6-Month Trend</div>
+            <div class="card-body">
+                <canvas id="trendChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Audit Log Section -->
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header">Recent System Activity</div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Action</th>
+                                <th>Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in recent_logs %}
+                            <tr>
+                                <td>{{ log.user.username|default:"System" }}</td>
+                                <td>{{ log.action }}</td>
+                                <td>{{ log.timestamp|date:"H:i" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3">No activity logs.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+{{ chart_labels|json_script:"chart-labels-data" }}
+{{ chart_data|json_script:"chart-data-data" }}
+{{ dist_labels|json_script:"dist-labels-data" }}
+{{ dist_data|json_script:"dist-data-data" }}
+{{ cat_labels|json_script:"cat-labels-data" }}
+{{ cat_data|json_script:"cat-data-data" }}
+{{ trend_labels|json_script:"trend-labels-data" }}
+{{ trend_data|json_script:"trend-data-data" }}
+
+<script>
+    const ctx = document.getElementById('statusChart');
+    const chartLabels = JSON.parse(document.getElementById('chart-labels-data').textContent);
+    const chartData = JSON.parse(document.getElementById('chart-data-data').textContent);
+
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: chartLabels,
+            datasets: [{
+                label: '# of Cases',
+                data: chartData,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6 text-center">
+        <h1 class="display-1 text-danger"><i class="bi bi-exclamation-triangle-fill"></i></h1>
+        <h2>Access Denied</h2>
+        <p class="lead">You do not have permission to view this page/resource.</p>
+        <a href="{% url 'dashboard' %}" class="btn btn-primary">Return to Dashboard</a>
+    </div>
+</div>
+{% endblock %}

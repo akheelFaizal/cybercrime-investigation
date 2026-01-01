@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="text-center mb-5">Choose Account Type</h2>
+    <div class="row justify-content-center">
+        <div class="col-md-5 mb-4">
+            <div class="card h-100 p-4 text-center report-card">
+                <div class="card-body">
+                    <i class="bi bi-person-fill display-4 text-primary mb-3"></i>
+                    <h3 class="card-title">Citizen</h3>
+                    <p class="card-text">For individuals to report cybercrimes and track complaints.</p>
+                    <a href="{% url 'register_citizen' %}" class="btn btn-primary">Register as Citizen</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-5 mb-4">
+            <div class="card h-100 p-4 text-center report-card">
+                <div class="card-body">
+                    <i class="bi bi-building display-4 text-success mb-3"></i>
+                    <h3 class="card-title">Organization</h3>
+                    <p class="card-text">For companies to manage multiple staff accounts and reports.</p>
+                    <a href="{% url 'register_org' %}" class="btn btn-success">Register Organization</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

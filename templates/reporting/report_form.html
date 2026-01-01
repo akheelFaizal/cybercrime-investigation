@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">File a New Report</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        {{ form|crispy }}
+
+                        <div class="mb-3">
+                            <label class="form-label">Upload Evidence (Multiple files allowed)</label>
+                            <input type="file" name="evidence" class="form-control" multiple>
+                            <div class="form-text text-light-50">Allowed: JPG, PNG, PDF. Max 5MB each.</div>
+                        </div>
+
+
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Submit Report</button>
+                            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

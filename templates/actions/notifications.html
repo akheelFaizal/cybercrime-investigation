@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block title %}Notifications{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-bell"></i> Notifications</h2>
+        <form action="{% url 'mark_all_read' %}" method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-info btn-sm">Mark All as Read</button>
+        </form>
+    </div>
+
+    <div class="list-group">
+        {% for notification in notifications %}
+        <a href="{% url 'mark_read' notification.id %}"
+            class="list-group-item list-group-item-action {% if not notification.is_read %}active{% endif %} bg-dark text-light border-secondary">
+            <div class="d-flex w-100 justify-content-between">
+                <h5 class="mb-1">{{ notification.message }}</h5>
+                <small class="text-muted">{{ notification.created_at|date:"M d, H:i" }}</small>
+            </div>
+            {% if notification.link %}
+            <small class="text-info">View Details <i class="bi bi-arrow-right"></i></small>
+            {% endif %}
+        </a>
+        {% empty %}
+        <div class="text-center p-5 text-muted">
+            <i class="bi bi-bell-slash display-1"></i>
+            <p class="mt-3">No notifications yet.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if is_paginated %}
+    <div class="mt-4">
+        <!-- Pagination logic here if desired -->
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

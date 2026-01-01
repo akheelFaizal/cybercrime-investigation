@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="mb-4">Cybersecurity Awareness</h1>
+
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="card h-100 border-primary">
+                <div class="card-body">
+                    <h3 class="card-title text-primary"><i class="bi bi-shield-check"></i> Phishing</h3>
+                    <p class="card-text">Be suspicious of emails asking for sensitive information. Check the sender's
+                        email address and hover over links before clicking.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100 border-success">
+                <div class="card-body">
+                    <h3 class="card-title text-success"><i class="bi bi-key"></i> Strong Passwords</h3>
+                    <p class="card-text">Use complex passwords with a mix of letters, numbers, and symbols. Enable
+                        Multi-Factor Authentication (MFA) whenever possible.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100 border-warning">
+                <div class="card-body">
+                    <h3 class="card-title text-warning"><i class="bi bi-wifi-off"></i> Public Wi-Fi</h3>
+                    <p class="card-text">Avoid accessing bank accounts or sensitive data on public Wi-Fi networks using
+                        a VPN for encryption.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100 border-danger">
+                <div class="card-body">
+                    <h3 class="card-title text-danger"><i class="bi bi-bug"></i> Software Updates</h3>
+                    <p class="card-text">Keep your operating system and antivirus software up to date to protect against
+                        the latest threats.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

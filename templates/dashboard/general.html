@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="alert alert-info">
+            <h4>Welcome, {{ user.username }}</h4>
+            <p>Your account role is currently being set up or does not have specific dashboard privileges.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
