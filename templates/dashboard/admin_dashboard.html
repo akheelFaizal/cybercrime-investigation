@@ -27,7 +27,7 @@
         <div class="card bg-warning text-dark shadow-sm border-0">
             <div class="card-body">
                 <h6 class="text-uppercase small font-weight-bold">Pending Assignment</h6>
-                <h2 class="mb-0">{{ pending_cases }}</h2>
+                <h2 class="mb-0">{{ pending }}</h2>
             </div>
         </div>
     </div>
@@ -69,7 +69,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for case in unassigned_cases %}
+                            {% for case in urgent_reports %}
                             <tr>
                                 <td>#{{ case.id }}</td>
                                 <td><span class="badge bg-secondary">{{ case.get_category_display }}</span></td>
@@ -90,6 +90,45 @@
                 </div>
             </div>
         </div>
+
+        <div class="card mb-4 shadow-sm border-0">
+            <div class="card-header bg-white font-weight-bold border-0">
+                <i class="bi bi-graph-up text-success"></i> Organization Performance (Top 5)
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th>Organization</th>
+                                <th>Total Reported</th>
+                                <th>Resolved</th>
+                                <th>Resolution Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for org in org_performance %}
+                            <tr>
+                                <td>{{ org.organization_name }}</td>
+                                <td>{{ org.total_cases }}</td>
+                                <td>{{ org.resolved_cases }}</td>
+                                <td>
+                                    <div class="progress" style="height: 5px; width: 100px;">
+                                        <div class="progress-bar bg-success"
+                                            style="width: {% widthratio org.resolved_cases org.total_cases 100 %}%">
+                                        </div>
+
+                                    </div>
+                                    <small class="x-small">
+                                        {% widthratio org.resolved_cases org.total_cases 100 %}%</small>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Investigator Performance -->
@@ -100,7 +139,7 @@
             </div>
             <div class="card-body p-0">
                 <ul class="list-group list-group-flush">
-                    {% for officer in officer_stats %}
+                    {% for officer in officer_workload %}
                     <li class="list-group-item d-flex justify-content-between align-items-center">
                         <div>
                             <strong>{{ officer.get_full_name }}</strong><br>
@@ -119,19 +158,19 @@
     <!-- Charts -->
     <div class="col-md-4">
         <div class="card mb-4 shadow-sm border-0">
-            <div class="card-header bg-white border-0">Analytics: Status Breakdown</div>
+            <div class="card-header bg-white border-0 text-center fw-bold">Status Breakdown</div>
             <div class="card-body"><canvas id="statusChart"></canvas></div>
         </div>
     </div>
     <div class="col-md-4">
         <div class="card mb-4 shadow-sm border-0">
-            <div class="card-header bg-white border-0">Analytics: Crime Categories</div>
+            <div class="card-header bg-white border-0 text-center fw-bold">Crime Categories</div>
             <div class="card-body"><canvas id="catChart"></canvas></div>
         </div>
     </div>
     <div class="col-md-4">
         <div class="card mb-4 shadow-sm border-0">
-            <div class="card-header bg-white border-0">Analytics: 6-Month Volume</div>
+            <div class="card-header bg-white border-0 text-center fw-bold">Monthly Volume</div>
             <div class="card-body"><canvas id="trendChart"></canvas></div>
         </div>
     </div>
@@ -139,46 +178,22 @@
 
 <div class="row">
     <!-- Audit Log -->
-    <div class="col-12">
-        <div class="card mb-4 shadow-sm border-0">
-            <div class="card-header bg-white font-weight-bold border-0">System Audit Logs</div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover mb-0">
-                        <thead class="bg-light">
-                            <tr>
-                                <th>User</th>
-                                <th>Action</th>
-                                <th>Timestamp</th>
-                                <th>Details</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for log in recent_logs %}
-                            <tr>
-                                <td>{{ log.user.username|default:"System" }}</td>
-                                <td>{{ log.action }}</td>
-                                <td>{{ log.timestamp|date:"M d, H:i" }}</td>
-                                <td><small>{{ log.details }}</small></td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+    <div class="col-12 text-center mt-3">
+        <a href="{% url 'admin_audit_logs' %}" class="btn btn-outline-dark btn-sm shadow-sm px-4 mb-4">
+            <i class="bi bi-clock-history"></i> View Full System Audit Logs
+        </a>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <!-- Data -->
-{{ chart_labels|json_script:"status-labels" }}
-{{ chart_data|json_script:"status-data" }}
-{{ cat_labels|json_script:"cat-labels" }}
-{{ cat_data|json_script:"cat-data" }}
-{{ trend_labels|json_script:"trend-labels" }}
-{{ trend_data|json_script:"trend-data" }}
+<script id="status-labels" type="application/json">{{ status_labels|safe }}</script>
+<script id="status-data" type="application/json">{{ status_data|safe }}</script>
+<script id="cat-labels" type="application/json">{{ cat_labels|safe }}</script>
+<script id="cat-data" type="application/json">{{ cat_data|safe }}</script>
+<script id="trend-labels" type="application/json">{{ trend_labels|safe }}</script>
+<script id="trend-data" type="application/json">{{ trend_data|safe }}</script>
 
 <script>
     const statusLabels = JSON.parse(document.getElementById('status-labels').textContent);
@@ -195,7 +210,7 @@
             labels: statusLabels,
             datasets: [{ data: statusData, backgroundColor: ['#0d6efd', '#ffc107', '#198754', '#dc3545', '#6c757d'] }]
         },
-        options: { plugins: { legend: { position: 'bottom' } } }
+        options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } } }
     });
 
     // Category Chart
@@ -205,7 +220,7 @@
             labels: catLabels,
             datasets: [{ data: catData }]
         },
-        options: { plugins: { legend: { position: 'bottom' } } }
+        options: { plugins: { legend: { display: false } } }
     });
 
     // Trend Chart
@@ -215,7 +230,16 @@
             labels: trendLabels,
             datasets: [{ label: 'Cases Filed', data: trendData, borderColor: '#0d6efd', tension: 0.3, fill: true, backgroundColor: 'rgba(13, 110, 253, 0.1)' }]
         },
-        options: { scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+        options: {
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+        }
     });
 </script>
+
+<style>
+    .x-small {
+        font-size: 0.7rem;
+    }
+</style>
 {% endblock %}

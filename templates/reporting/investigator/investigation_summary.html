@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+
+{% block title %}Investigation Summary - Case #{{ report.id }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <h1 class="h2">Investigation Summary: Case #{{ report.id }}</h1>
+        <button onclick="window.print()" class="btn btn-outline-secondary d-print-none">
+            <i class="bi bi-printer"></i> Print / Save as PDF
+        </button>
+    </div>
+
+    <!-- Executive Summary -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4 shadow-sm border-0">
+                <div class="card-header bg-dark text-white fw-bold">Executive Overview</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 border-end">
+                            <p><strong>Title:</strong> {{ report.title }}</p>
+                            <p><strong>Category:</strong> {{ report.get_category_display }}</p>
+                            <p><strong>Reported At:</strong> {{ report.reported_at|date:"F d, Y H:i" }}</p>
+                            <p><strong>Status:</strong> <span class="badge bg-primary">{{ report.get_status_display
+                                    }}</span></p>
+                        </div>
+                        <div class="col-md-6 ps-md-4">
+                            <p><strong>Assigned Officer:</strong> {{ report.assigned_officer.get_full_name }}</p>
+                            <p><strong>Badge/Rank:</strong> {{ report.assigned_officer.officer_profile.badge_number }} /
+                                {{ report.assigned_officer.officer_profile.rank }}</p>
+                            <p><strong>Priority:</strong> {{ report.get_priority_display }}</p>
+                            <p><strong>Severity:</strong> {{ report.get_severity_display }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Findings & Evidence -->
+    <div class="row">
+        <div class="col-md-7">
+            <div class="card mb-4 shadow-sm border-0">
+                <div class="card-header bg-light fw-bold">Investigation Findings & Notes</div>
+                <div class="card-body">
+                    {% for note in notes %}
+                    <div class="mb-4 pb-3 border-bottom last-child-no-border">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="fw-bold text-primary">{{ note.officer.get_full_name }}</span>
+                            <small class="text-muted">{{ note.created_at|date:"M d, Y H:i" }}</small>
+                        </div>
+                        <p class="mb-0">{{ note.note|linebreaksbr }}</p>
+                        {% if note.is_internal %}
+                        <span class="badge bg-secondary x-small mt-2">INTERNAL ONLY</span>
+                        {% endif %}
+                    </div>
+                    {% empty %}
+                    <p class="text-muted italic">No investigation findings recorded.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-5">
+            <div class="card mb-4 shadow-sm border-0">
+                <div class="card-header bg-light fw-bold">Evidence Catalog</div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for item in evidence %}
+                        <li class="list-group-item">
+                            <i class="bi bi-file-earmark-check text-success me-2"></i>
+                            {% if item.file %}
+                            <a href="{{ item.file.url }}" target="_blank">View File #{{ forloop.counter }}</a>
+                            {% elif item.source_url %}
+                            <a href="{{ item.source_url }}" target="_blank">External Link: {{
+                                item.source_url|truncatechars:30 }}</a>
+                            {% endif %}
+                            <br>
+                            <small class="text-muted ms-4">{{ item.description|default:"No description" }}</small>
+                            <div class="ms-4">
+                                {% if item.is_investigator_added %}
+                                <span class="badge bg-info-subtle text-info x-small">Investigator Added</span>
+                                {% else %}
+                                <span class="badge bg-secondary-subtle text-secondary x-small">Reporter Upload</span>
+                                {% endif %}
+                            </div>
+                        </li>
+                        {% empty %}
+                        <li class="list-group-item text-muted">No evidence cataloged.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Case Lifecycle -->
+            <div class="card mb-4 shadow-sm border-0">
+                <div class="card-header bg-light fw-bold">Lifecycle Events (Timeline)</div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush small">
+                        {% for item in history %}
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Status: <strong>{{ item.new_status }}</strong></span>
+                            <span class="text-muted">{{ item.timestamp|date:"M d, H:i" }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Official Footer -->
+    <div class="mt-5 pt-5 text-center text-muted border-top border-2 border-dark d-none d-print-block">
+        <div class="row">
+            <div class="col-6">
+                <p>__________________________<br>Signature of Officer</p>
+            </div>
+            <div class="col-6">
+                <p>__________________________<br>Department Seal</p>
+            </div>
+        </div>
+        <p class="mt-4 small">This is a system-generated investigation summary. All information contained herein is
+            subject to departmental security protocols.</p>
+    </div>
+</div>
+
+<style>
+    @media print {
+
+        .navbar,
+        .sidebar,
+        .btn-toolbar,
+        .d-print-none {
+            display: none !important;
+        }
+
+        body {
+            background: white !important;
+            color: black !important;
+        }
+
+        .card {
+            border: 1px solid #dee2e6 !important;
+            box-shadow: none !important;
+        }
+
+        .bg-dark {
+            background-color: #343a40 !important;
+        }
+
+        .bg-light {
+            background-color: #f8f9fa !important;
+        }
+
+        .text-white {
+            color: white !important;
+        }
+
+        .container {
+            max-width: 100% !important;
+            margin: 0 !important;
+            width: 100% !important;
+        }
+    }
+
+    .x-small {
+        font-size: 0.7rem;
+    }
+</style>
+{% endblock %}

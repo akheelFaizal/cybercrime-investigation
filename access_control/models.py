@@ -58,6 +58,7 @@ class OrganizationProfile(models.Model):
     registration_number = models.CharField(max_length=100, unique=True)
     website = models.URLField(blank=True, null=True)
     is_verified = models.BooleanField(default=False)
+    is_approved = models.BooleanField(default=False, help_text="Admin approval status for organization registration")
 
     def __str__(self):
         return self.organization_name

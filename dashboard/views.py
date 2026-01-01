@@ -38,6 +38,10 @@ def dashboard_view(request):
         
     elif user.is_organization():
         org = user.get_organization()
+        if org and not org.is_approved:
+            return render(request, 'dashboard/org_pending.html', {'org': org})
+            
+        # Organization Stats
         if org:
             from django.db.models import Count
             from django.db.models.functions import TruncMonth
@@ -147,24 +151,30 @@ def dashboard_view(request):
         # Unassigned cases for the "Assignment Panel"
         unassigned_cases = CrimeReport.objects.filter(assigned_officer__isnull=True).order_by('-reported_at')[:5]
 
+        # Per-Organization Metrics
+        from access_control.models import OrganizationProfile
+        org_stats = OrganizationProfile.objects.annotate(
+            total_cases=Count('user__filed_reports'),
+            resolved_cases=Count('user__filed_reports', filter=models.Q(user__filed_reports__status='RESOLVED')),
+        ).filter(total_cases__gt=0).order_by('-total_cases')[:5]
+
         context = {
-            'total_reports': total_reports, 
-            'pending_cases': pending,
+            'role': 'Admin',
+            'total_reports': total_reports,
+            'pending': pending,
             'active_cases': active_cases,
             'resolved_cases': resolved_cases,
             'avg_res_time': avg_res_display,
-            'role': 'Administrator',
-            'chart_labels': labels,
-            'chart_data': data,
-            'dist_labels': distribution_labels,
-            'dist_data': distribution_data,
-            'cat_labels': cat_labels,
-            'cat_data': cat_data,
-            'trend_labels': trend_labels,
-            'trend_data': trend_data,
-            'recent_logs': recent_logs,
-            'officer_stats': officer_stats,
-            'unassigned_cases': unassigned_cases
+            'status_labels': json.dumps(labels),
+            'status_data': json.dumps(data),
+            'cat_labels': json.dumps(cat_labels),
+            'cat_data': json.dumps(cat_data),
+            'trend_labels': json.dumps(trend_labels),
+            'trend_data': json.dumps(trend_data),
+            'recent_logs': AuditLog.objects.all().order_by('-timestamp')[:5],
+            'urgent_reports': CrimeReport.objects.filter(assigned_officer__isnull=True).order_by('-priority')[:5],
+            'officer_workload': User.objects.filter(role=User.Role.OFFICER).annotate(case_count=Count('assigned_cases')).order_by('-case_count')[:5],
+            'org_performance': org_stats
         }
         return render(request, 'dashboard/admin_dashboard.html', context)
     

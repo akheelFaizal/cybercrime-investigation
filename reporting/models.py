@@ -40,10 +40,22 @@ class CrimeReport(models.Model):
         HIGH = 'HIGH', 'High'
         CRITICAL = 'CRITICAL', 'Critical'
 
+    class Severity(models.TextChoices):
+        MINOR = 'MINOR', 'Minor Impact'
+        MODERATE = 'MODERATE', 'Moderate Impact'
+        SIGNIFICANT = 'SIGNIFICANT', 'Significant Impact'
+        CATASTROPHIC = 'CATASTROPHIC', 'Catastrophic Impact'
+
     priority = models.CharField(
         max_length=20,
         choices=Priority.choices,
         default=Priority.MEDIUM
+    )
+
+    severity = models.CharField(
+        max_length=20,
+        choices=Severity.choices,
+        default=Severity.MODERATE
     )
     
     is_escalated = models.BooleanField(default=False)
@@ -68,7 +80,9 @@ class CrimeReport(models.Model):
 
 class Evidence(models.Model):
     report = models.ForeignKey(CrimeReport, on_delete=models.CASCADE, related_name='evidences')
-    file = models.FileField(upload_to='evidence/%Y/%m/%d/', validators=[validate_evidence_file])
+    file = models.FileField(upload_to='evidence/%Y/%m/%d/', validators=[validate_evidence_file], null=True, blank=True)
+    source_url = models.URLField(max_length=500, blank=True, null=True, help_text="Link to external evidence (e.g. social media profile, drive link)")
+    is_investigator_added = models.BooleanField(default=False)
     uploaded_at = models.DateTimeField(auto_now_add=True)
     description = models.CharField(max_length=255, blank=True)
 
@@ -79,6 +93,7 @@ class InvestigationNote(models.Model):
     report = models.ForeignKey(CrimeReport, on_delete=models.CASCADE, related_name='notes')
     officer = models.ForeignKey(User, on_delete=models.CASCADE)
     note = models.TextField()
+    is_internal = models.BooleanField(default=True, help_text="If true, only officers and admins see this note.")
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

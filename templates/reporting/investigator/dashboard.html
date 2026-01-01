@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+
+{% block title %}Investigator Command Center - CyberGuard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="bi bi-shield-shaded"></i> Investigator Command Center</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <span class="badge bg-dark p-2 me-2">Badge: {{ user.officer_profile.badge_number }}</span>
+        <span class="badge bg-primary p-2">Rank: {{ user.officer_profile.rank }}</span>
+    </div>
+</div>
+
+<!-- Performance Metrics -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white shadow-sm border-0">
+            <div class="card-body">
+                <h6 class="text-uppercase small font-weight-bold">Assigned Cases</h6>
+                <h2 class="mb-0">{{ total_assigned }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark shadow-sm border-0">
+            <div class="card-body">
+                <h6 class="text-uppercase small font-weight-bold">Active Investigations</h6>
+                <h2 class="mb-0">{{ active_cases }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white shadow-sm border-0">
+            <div class="card-body">
+                <h6 class="text-uppercase small font-weight-bold">Resolved Cases</h6>
+                <h2 class="mb-0">{{ resolved_cases }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white shadow-sm border-0">
+            <div class="card-body">
+                <h6 class="text-uppercase small font-weight-bold">Avg. Resolution Time</h6>
+                <h2 class="mb-0">{{ avg_res_time }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Urgent Cases -->
+    <div class="col-lg-12">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white font-weight-bold">
+                <i class="bi bi-exclamation-triangle-fill text-danger"></i> Urgent Assigned Cases
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead class="bg-light">
+                            <tr>
+                                <th>Case ID</th>
+                                <th>Priority</th>
+                                <th>Category</th>
+                                <th>Status</th>
+                                <th>Reported</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for case in assigned_cases %}
+                            <tr>
+                                <td>#{{ case.id }}</td>
+                                <td>
+                                    <span
+                                        class="badge bg-{% if case.priority == 'CRITICAL' %}danger{% elif case.priority == 'HIGH' %}warning text-dark{% else %}secondary{% endif %}">
+                                        {{ case.get_priority_display }}
+                                    </span>
+                                    {% if case.is_overdue %}<span class="badge bg-danger ms-1">OVERDUE</span>{% endif %}
+                                </td>
+                                <td>{{ case.get_category_display }}</td>
+                                <td>
+                                    {% if case.status == 'PENDING' %}<span
+                                        class="badge bg-warning text-dark">Pending</span>
+                                    {% elif case.status == 'RESOLVED' %}<span class="badge bg-success">Resolved</span>
+                                    {% else %}<span class="badge bg-primary">{{ case.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td><small>{{ case.reported_at|date:"M d, Y" }}</small></td>
+                                <td class="text-end">
+                                    <a href="{% url 'report_detail' case.id %}"
+                                        class="btn btn-sm btn-outline-primary">Manage</a>
+                                    <a href="{% url 'investigation_summary' case.id %}"
+                                        class="btn btn-sm btn-outline-secondary">Summary</a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center py-4">No cases currently assigned.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

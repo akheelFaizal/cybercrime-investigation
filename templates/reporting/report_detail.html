@@ -6,7 +6,11 @@
         class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 border-bottom">
         <h1 class="h2">Case Management: #{{ report.id }}</h1>
         <div>
+            {% if report.is_escalated %}
+            <span class="badge bg-danger me-2"><i class="bi bi-fire"></i> ESCALATED</span>
+            {% endif %}
             <span class="badge bg-secondary me-2">Priority: {{ report.get_priority_display }}</span>
+            <span class="badge bg-danger me-2">Severity: {{ report.get_severity_display }}</span>
             <span
                 class="badge bg-{% if report.status == 'RESOLVED' %}success{% elif report.status == 'PENDING' %}warning text-dark{% else %}primary{% endif %} p-2">
                 Status: {{ report.get_status_display }}
@@ -39,16 +43,22 @@
                         {% for evidence in report.evidences.all %}
                         <div class="col-md-6 col-lg-4">
                             <div class="card h-100 border text-center p-2">
+                                {% if evidence.file %}
                                 <i class="bi bi-file-earmark-pdf display-6 text-danger"></i>
                                 <a href="{{ evidence.file.url }}" target="_blank"
                                     class="small text-truncate mt-2 d-block">Evidence #{{ forloop.counter }}</a>
+                                {% elif evidence.source_url %}
+                                <i class="bi bi-link-45deg display-6 text-info"></i>
+                                <a href="{{ evidence.source_url }}" target="_blank"
+                                    class="small text-truncate mt-2 d-block">External Reference</a>
+                                {% endif %}
                                 <small class="text-muted">{{ evidence.uploaded_at|date:"M d" }}</small>
                             </div>
                         </div>
                         {% endfor %}
                     </div>
                     {% else %}
-                    <p class="text-muted small italic">No evidence files provided.</p>
+                    <p class="text-muted small italic">No evidence provided.</p>
                     {% endif %}
                 </div>
             </div>
@@ -70,10 +80,15 @@
                             {% if report.notes.all %}
                             <div class="timeline">
                                 {% for note in report.notes.all %}
-                                <div class="mb-3 p-3 border-start border-4 border-info bg-light-subtle">
+                                <div
+                                    class="mb-3 p-3 border-start border-4 border-{% if note.is_internal %}secondary{% else %}info{% endif %} bg-light-subtle">
                                     <div class="d-flex justify-content-between">
                                         <strong class="text-primary">{{ note.officer.get_full_name }}</strong>
-                                        <small class="text-muted">{{ note.created_at|date:"M d, Y H:i" }}</small>
+                                        <div>
+                                            {% if note.is_internal %}<span
+                                                class="badge bg-secondary x-small me-2">INTERNAL</span>{% endif %}
+                                            <small class="text-muted">{{ note.created_at|date:"M d, Y H:i" }}</small>
+                                        </div>
                                     </div>
                                     <p class="mb-0 mt-2">{{ note.note }}</p>
                                 </div>
@@ -144,9 +159,9 @@
                 <div class="card-header bg-white font-weight-bold">
                     <i class="bi bi-shield-shaded text-success"></i> Investigator Info
                 </div>
-                <div class="card-body">
+                <div class="card-body text-center">
                     {% if report.assigned_officer %}
-                    <div class="d-flex align-items-center mb-3">
+                    <div class="d-flex align-items-center mb-3 text-start">
                         <i class="bi bi-person-badge-fill display-6 me-3 text-secondary"></i>
                         <div>
                             <h6 class="mb-0 fw-bold">{{ report.assigned_officer.get_full_name }}</h6>
@@ -156,9 +171,14 @@
                             </p>
                         </div>
                     </div>
+                    {% if user.is_officer or user.is_admin %}
+                    <a href="{% url 'investigation_summary' report.id %}" class="btn btn-sm btn-outline-dark w-100">
+                        <i class="bi bi-file-earmark-pdf"></i> Investigation Summary
+                    </a>
+                    {% endif %}
                     {% else %}
                     <div class="alert alert-warning py-2 small">
-                        <i class="bi bi-exclamation-triangle"></i> This case is currently unassigned.
+                        <i class="bi bi-exclamation-triangle"></i> This case is unassigned.
                     </div>
                     {% endif %}
                 </div>
@@ -174,23 +194,68 @@
                     <form method="post">
                         {% csrf_token %}
                         <div class="mb-3">
-                            <label class="form-label small fw-bold">Update Case Status</label>
-                            <select name="status" class="form-select form-select-sm">
-                                <option value="" selected>Current: {{ report.get_status_display }}</option>
-                                <option value="UNDER_REVIEW">Under Review</option>
-                                <option value="ASSIGNED">Assigned</option>
-                                <option value="RESOLVED">Mark as Resolved</option>
-                                <option value="REJECTED">Reject/Invalid</option>
-                                <option value="CLOSED">Final Close</option>
-                            </select>
+                            <label class="form-label small fw-bold">Status & Severity</label>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <select name="status" class="form-select form-select-sm">
+                                        <option value="" selected>Status: {{ report.get_status_display }}</option>
+                                        <option value="UNDER_REVIEW">Under Review</option>
+                                        <option value="ASSIGNED">Assigned</option>
+                                        <option value="RESOLVED">Resolved</option>
+                                        <option value="REJECTED">Reject Case</option>
+                                    </select>
+                                </div>
+                                <div class="col-6">
+                                    <select name="severity" class="form-select form-select-sm">
+                                        <option value="" selected>Severity: {{ report.get_severity_display }}</option>
+                                        <option value="MINOR">Minor</option>
+                                        <option value="MODERATE">Moderate</option>
+                                        <option value="SIGNIFICANT">Significant</option>
+                                        <option value="CATASTROPHIC">Catastrophic</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label small fw-bold">Add Note / Escalation Remark</label>
-                            <textarea name="note" class="form-control" rows="4"
-                                placeholder="Enter findings, evidence notes..."></textarea>
+                            <label class="form-label small fw-bold">Add Evidence URL</label>
+                            <input type="url" name="source_url" class="form-control form-control-sm"
+                                placeholder="https://external-evidence.com">
                         </div>
-                        <button type="submit" class="btn btn-primary w-100 shadow-sm">Confirm Update</button>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <label class="form-label small fw-bold">Note / Findings</label>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="is_internal"
+                                        id="internalSwitch" checked>
+                                    <label class="form-check-label small" for="internalSwitch">Internal</label>
+                                </div>
+                            </div>
+                            <textarea name="note" class="form-control form-control-sm" rows="3"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 shadow-sm btn-sm">Submit Update</button>
                     </form>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Citizen Actions -->
+            {% if user == report.reporter %}
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-success text-white font-weight-bold">
+                    Citizen Actions
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'submit_followup' report.id %}" class="btn btn-outline-success btn-sm">
+                            <i class="bi bi-file-earmark-plus"></i> Submit Follow-up Evidence
+                        </a>
+                        {% if not report.is_escalated %}
+                        <a href="{% url 'request_escalation' report.id %}"
+                            class="btn btn-outline-warning btn-sm text-dark">
+                            <i class="bi bi-exclamation-octagon"></i> Request Escalation
+                        </a>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
             {% endif %}

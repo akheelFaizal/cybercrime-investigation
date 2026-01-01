@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0 mt-5">
+            <div class="card-header bg-warning text-dark font-weight-bold">
+                <i class="bi bi-exclamation-triangle"></i> Request Case Escalation: #{{ report.id }}
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info small py-2 mb-4">
+                    <i class="bi bi-info-circle"></i> Escalation requests are reviewed by Higher
+                    Officials/Administrators. Please provide a valid justification for why this case needs urgent
+                    attention.
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Reason for Escalation</label>
+                        <textarea name="reason" class="form-control" rows="5" required
+                            placeholder="Example: No progress for 7 days, new critical threat discovered, etc."></textarea>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-danger">Confirm Escalation Request</button>
+                        <a href="{% url 'report_detail' report.id %}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
