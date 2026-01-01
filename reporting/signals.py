@@ -1,55 +1,86 @@
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
-from .models import CrimeReport, InvestigationNote
-from actions.models import Notification, AuditLog
+from .models import CrimeReport, InvestigationNote, CaseStatusHistory
+from actions.models import AuditLog
+from actions.utils import send_notification
 from access_control.models import User
 
+@receiver(pre_save, sender=CrimeReport)
+def capture_previous_values(sender, instance, **kwargs):
+    if instance.pk:
+        try:
+            old_instance = CrimeReport.objects.get(pk=instance.pk)
+            instance._old_status = old_instance.status
+            instance._old_assigned_officer = old_instance.assigned_officer
+        except CrimeReport.DoesNotExist:
+            instance._old_status = None
+            instance._old_assigned_officer = None
+    else:
+        instance._old_status = None
+        instance._old_assigned_officer = None
+
 @receiver(post_save, sender=CrimeReport)
-def notify_report_update(sender, instance, created, **kwargs):
-    """
-    Notify reporter when status changes.
-    Notify officers when a new case is assigned (or pending if logic requires).
-    """
+def handle_report_changes(sender, instance, created, **kwargs):
     if created:
-        # Notify Admins/Officers of new high-priority report?
-        # For now, just log audit
+        # 1. Log Creation
         AuditLog.objects.create(
             user=instance.reporter,
-            action=f"Created report #{instance.id}: {instance.title}",
-            details=f"Category: {instance.category}"
+            action=f"Created report #{instance.id}",
+            details=f"Title: {instance.title}"
         )
-    else:
-        # Status Change Notification to Reporter
-        # Check if status changed? We don't have previous state here easily without custom dirty fields logic or pre_save.
-        # But assuming save() is called often only on changes.
-        Notification.objects.create(
-            recipient=instance.reporter,
-            message=f"Your report #{instance.id} status is now: {instance.get_status_display()}",
-            link=f"/reporting/{instance.id}/"
-        )
-        
-        # Assignment Notification
-        if instance.assigned_officer:
-            Notification.objects.create(
-                recipient=instance.assigned_officer,
-                message=f"You have been assigned case #{instance.id}",
-                link=f"/reporting/{instance.id}/"
+        # 2. Notify Org Admin if reporter is staff
+        org = instance.reporter.get_organization()
+        if org and instance.reporter != org.user:
+            send_notification(
+                recipient=org.user,
+                message=f"New report submitted by staff: {instance.reporter.get_full_name()}",
+                link=f"/reporting/{instance.id}/",
+                notification_type='INFO'
             )
-            
-        AuditLog.objects.create(
-            action=f"Report #{instance.id} updated",
-            details=f"Status: {instance.status}"
-        )
+    else:
+        # Check for status change
+        old_status = getattr(instance, '_old_status', None)
+        if old_status and old_status != instance.status:
+            # Log History
+            CaseStatusHistory.objects.create(
+                report=instance,
+                previous_status=old_status,
+                new_status=instance.status,
+                remarks=f"Status changed from {old_status} to {instance.status}"
+            )
+            # Notify Reporter
+            send_notification(
+                recipient=instance.reporter,
+                message=f"Case #{instance.id} status changed to {instance.get_status_display()}",
+                link=f"/reporting/{instance.id}/",
+                notification_type='SUCCESS'
+            )
+        
+        # Check for assignment change
+        old_officer = getattr(instance, '_old_assigned_officer', None)
+        if instance.assigned_officer and instance.assigned_officer != old_officer:
+            # Notify Officer
+            send_notification(
+                recipient=instance.assigned_officer,
+                message=f"You have been assigned to Case #{instance.id}",
+                link=f"/reporting/{instance.id}/",
+                notification_type='ALERT'
+            )
+            # Notify Reporter
+            send_notification(
+                recipient=instance.reporter,
+                message=f"An investigator has been assigned to your case #{instance.id}",
+                link=f"/reporting/{instance.id}/",
+            )
 
 @receiver(post_save, sender=InvestigationNote)
 def notify_note_added(sender, instance, created, **kwargs):
     if created:
         report = instance.report
-        # Notify reporter that an update/note was added? Usually internal unless public.
-        # Let's assume notes are internal or visible to user.
-        # If visible:
-        Notification.objects.create(
+        # Notify reporter
+        send_notification(
             recipient=report.reporter,
-            message=f"New update on report #{report.id}",
+            message=f"New update/note on your case #{report.id}",
             link=f"/reporting/{report.id}/"
         )
+

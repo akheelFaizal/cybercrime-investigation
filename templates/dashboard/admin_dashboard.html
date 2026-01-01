@@ -2,86 +2,155 @@
 
 {% block content %}
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">Admin Overview</h1>
-    <div>
-        <a href="{% url 'user_list' %}" class="btn btn-outline-primary"><i class="bi bi-people-fill"></i> Manage
-            Users</a>
+    <h1 class="h2">Admin Command Center</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{% url 'user_list' %}" class="btn btn-sm btn-outline-secondary me-2">
+            <i class="bi bi-people"></i> Manage Users
+        </a>
+        <a href="{% url 'admin_case_list' %}" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-shield-lock"></i> All Cases
+        </a>
     </div>
 </div>
 
+<!-- KPI Cards -->
 <div class="row mb-4">
     <div class="col-md-3">
-        <div class="card text-white bg-info mb-3">
+        <div class="card bg-primary text-white shadow-sm border-0">
             <div class="card-body">
-                <h5 class="card-title">Total Reports</h5>
-                <p class="card-text display-4">{{ total_reports }}</p>
+                <h6 class="text-uppercase small font-weight-bold">Total Reports</h6>
+                <h2 class="mb-0">{{ total_reports }}</h2>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card text-white bg-warning mb-3">
+        <div class="card bg-warning text-dark shadow-sm border-0">
             <div class="card-body">
-                <h5 class="card-title">Pending</h5>
-                <p class="card-text display-4">{{ pending_cases }}</p>
+                <h6 class="text-uppercase small font-weight-bold">Pending Assignment</h6>
+                <h2 class="mb-0">{{ pending_cases }}</h2>
             </div>
         </div>
     </div>
-</div>
-<div class="row">
-    <!-- Chart Section 1: Status -->
     <div class="col-md-3">
-        <div class="card mb-4">
-            <div class="card-header">Case Status</div>
+        <div class="card bg-success text-white shadow-sm border-0">
             <div class="card-body">
-                <canvas id="statusChart"></canvas>
+                <h6 class="text-uppercase small font-weight-bold">Resolved Cases</h6>
+                <h2 class="mb-0">{{ resolved_cases }}</h2>
             </div>
         </div>
     </div>
-
-    <!-- Chart Section 2: Assignment -->
     <div class="col-md-3">
-        <div class="card mb-4">
-            <div class="card-header">Assignment</div>
+        <div class="card bg-info text-white shadow-sm border-0">
             <div class="card-body">
-                <canvas id="distChart"></canvas>
-            </div>
-        </div>
-    </div>
-
-    <!-- Chart Section 3: Categories -->
-    <div class="col-md-3">
-        <div class="card mb-4">
-            <div class="card-header">By Category</div>
-            <div class="card-body">
-                <canvas id="catChart"></canvas>
-            </div>
-        </div>
-    </div>
-
-    <!-- Chart Section 4: Trends -->
-    <div class="col-md-3">
-        <div class="card mb-4">
-            <div class="card-header">6-Month Trend</div>
-            <div class="card-body">
-                <canvas id="trendChart"></canvas>
+                <h6 class="text-uppercase small font-weight-bold">Avg. Resolution (SLA)</h6>
+                <h2 class="mb-0">{{ avg_res_time }}</h2>
             </div>
         </div>
     </div>
 </div>
 
 <div class="row">
-    <!-- Audit Log Section -->
-    <div class="col-12">
-        <div class="card mb-4">
-            <div class="card-header">Recent System Activity</div>
-            <div class="card-body">
+    <!-- Case Assignment Panel -->
+    <div class="col-md-8">
+        <div class="card mb-4 shadow-sm border-0">
+            <div class="card-header bg-white font-weight-bold border-0">
+                <i class="bi bi-clipboard-pulse text-danger"></i> Urgent: Unassigned Cases
+            </div>
+            <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-sm table-striped">
-                        <thead>
+                    <table class="table table-hover mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th>Case ID</th>
+                                <th>Category</th>
+                                <th>Reported</th>
+                                <th>Reporter</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for case in unassigned_cases %}
+                            <tr>
+                                <td>#{{ case.id }}</td>
+                                <td><span class="badge bg-secondary">{{ case.get_category_display }}</span></td>
+                                <td>{{ case.reported_at|date:"M d, Y" }}</td>
+                                <td>{{ case.reporter.get_full_name|default:case.reporter.username }}</td>
+                                <td class="text-end">
+                                    <a href="{% url 'admin_case_update' case.id %}"
+                                        class="btn btn-sm btn-primary">Assign</a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4">All cases are currently assigned.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Investigator Performance -->
+    <div class="col-md-4">
+        <div class="card mb-4 shadow-sm border-0">
+            <div class="card-header bg-white font-weight-bold border-0">
+                <i class="bi bi-person-badge text-primary"></i> Investigator Workload
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for officer in officer_stats %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ officer.get_full_name }}</strong><br>
+                            <small class="text-muted">{{ officer.officer_profile.badge_number }}</small>
+                        </div>
+                        <span class="badge bg-primary rounded-pill">{{ officer.case_count }} Cases</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Charts -->
+    <div class="col-md-4">
+        <div class="card mb-4 shadow-sm border-0">
+            <div class="card-header bg-white border-0">Analytics: Status Breakdown</div>
+            <div class="card-body"><canvas id="statusChart"></canvas></div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card mb-4 shadow-sm border-0">
+            <div class="card-header bg-white border-0">Analytics: Crime Categories</div>
+            <div class="card-body"><canvas id="catChart"></canvas></div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card mb-4 shadow-sm border-0">
+            <div class="card-header bg-white border-0">Analytics: 6-Month Volume</div>
+            <div class="card-body"><canvas id="trendChart"></canvas></div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Audit Log -->
+    <div class="col-12">
+        <div class="card mb-4 shadow-sm border-0">
+            <div class="card-header bg-white font-weight-bold border-0">System Audit Logs</div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="bg-light">
                             <tr>
                                 <th>User</th>
                                 <th>Action</th>
-                                <th>Time</th>
+                                <th>Timestamp</th>
+                                <th>Details</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -89,11 +158,8 @@
                             <tr>
                                 <td>{{ log.user.username|default:"System" }}</td>
                                 <td>{{ log.action }}</td>
-                                <td>{{ log.timestamp|date:"H:i" }}</td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="3">No activity logs.</td>
+                                <td>{{ log.timestamp|date:"M d, H:i" }}</td>
+                                <td><small>{{ log.details }}</small></td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -106,33 +172,50 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-{{ chart_labels|json_script:"chart-labels-data" }}
-{{ chart_data|json_script:"chart-data-data" }}
-{{ dist_labels|json_script:"dist-labels-data" }}
-{{ dist_data|json_script:"dist-data-data" }}
-{{ cat_labels|json_script:"cat-labels-data" }}
-{{ cat_data|json_script:"cat-data-data" }}
-{{ trend_labels|json_script:"trend-labels-data" }}
-{{ trend_data|json_script:"trend-data-data" }}
+<!-- Data -->
+{{ chart_labels|json_script:"status-labels" }}
+{{ chart_data|json_script:"status-data" }}
+{{ cat_labels|json_script:"cat-labels" }}
+{{ cat_data|json_script:"cat-data" }}
+{{ trend_labels|json_script:"trend-labels" }}
+{{ trend_data|json_script:"trend-data" }}
 
 <script>
-    const ctx = document.getElementById('statusChart');
-    const chartLabels = JSON.parse(document.getElementById('chart-labels-data').textContent);
-    const chartData = JSON.parse(document.getElementById('chart-data-data').textContent);
+    const statusLabels = JSON.parse(document.getElementById('status-labels').textContent);
+    const statusData = JSON.parse(document.getElementById('status-data').textContent);
+    const catLabels = JSON.parse(document.getElementById('cat-labels').textContent);
+    const catData = JSON.parse(document.getElementById('cat-data').textContent);
+    const trendLabels = JSON.parse(document.getElementById('trend-labels').textContent);
+    const trendData = JSON.parse(document.getElementById('trend-data').textContent);
 
-    new Chart(ctx, {
-        type: 'doughnut',
+    // Status Chart
+    new Chart(document.getElementById('statusChart'), {
+        type: 'pie',
         data: {
-            labels: chartLabels,
-            datasets: [{
-                label: '# of Cases',
-                data: chartData,
-                borderWidth: 1
-            }]
+            labels: statusLabels,
+            datasets: [{ data: statusData, backgroundColor: ['#0d6efd', '#ffc107', '#198754', '#dc3545', '#6c757d'] }]
         },
-        options: {
-            responsive: true
-        }
+        options: { plugins: { legend: { position: 'bottom' } } }
+    });
+
+    // Category Chart
+    new Chart(document.getElementById('catChart'), {
+        type: 'polarArea',
+        data: {
+            labels: catLabels,
+            datasets: [{ data: catData }]
+        },
+        options: { plugins: { legend: { position: 'bottom' } } }
+    });
+
+    // Trend Chart
+    new Chart(document.getElementById('trendChart'), {
+        type: 'line',
+        data: {
+            labels: trendLabels,
+            datasets: [{ label: 'Cases Filed', data: trendData, borderColor: '#0d6efd', tension: 0.3, fill: true, backgroundColor: 'rgba(13, 110, 253, 0.1)' }]
+        },
+        options: { scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
     });
 </script>
 {% endblock %}

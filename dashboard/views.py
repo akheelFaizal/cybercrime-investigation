@@ -1,6 +1,9 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from reporting.models import CrimeReport
+from django.db import models
+from django.contrib.auth import get_user_model
+User = get_user_model()
 
 def home(request):
     return render(request, 'home.html')
@@ -21,13 +24,58 @@ def dashboard_view(request):
     context = {}
     
     if user.is_citizen():
-        reports = CrimeReport.objects.filter(reporter=user).order_by('-reported_at')[:5]
-        context = {'reports': reports, 'role': 'Citizen'}
+        reports = CrimeReport.objects.filter(reporter=user).order_by('-reported_at')
+        from actions.models import Notification
+        recent_notifications = Notification.objects.filter(recipient=user).order_by('-created_at')[:5]
+        context = {
+            'reports': reports[:5], 
+            'total_reports': reports.count(),
+            'resolved_reports': reports.filter(status__in=['RESOLVED', 'CLOSED']).count(),
+            'recent_notifications': recent_notifications,
+            'role': 'Citizen'
+        }
         return render(request, 'dashboard/citizen_dashboard.html', context)
         
     elif user.is_organization():
-        reports = CrimeReport.objects.filter(reporter=user).order_by('-reported_at')
-        context = {'reports': reports, 'role': 'Organization'}
+        org = user.get_organization()
+        if org:
+            from django.db.models import Count
+            from django.db.models.functions import TruncMonth
+            import datetime
+            from django.utils import timezone
+
+            # Primary Org User + all staff members
+            users_in_org = User.objects.filter(models.Q(organization=org) | models.Q(id=org.user.id))
+            all_reports = CrimeReport.objects.filter(reporter__in=users_in_org).order_by('-reported_at')
+            
+            # Stats
+            total = all_reports.count()
+            pending = all_reports.filter(status='PENDING').count()
+            resolved = all_reports.filter(status__in=['RESOLVED', 'CLOSED']).count()
+            
+            # Trends (Last 6 months)
+            six_months_ago = timezone.now() - datetime.timedelta(days=180)
+            trends = all_reports.filter(reported_at__gte=six_months_ago)\
+                .annotate(month=TruncMonth('reported_at'))\
+                .values('month')\
+                .annotate(count=Count('id'))\
+                .order_by('month')
+            
+            trend_labels = [item['month'].strftime("%b %Y") for item in trends]
+            trend_data = [item['count'] for item in trends]
+
+            context = {
+                'reports': all_reports[:10], # Recent reports
+                'total_cases': total,
+                'pending_cases': pending,
+                'resolved_cases': resolved,
+                'trend_labels': trend_labels,
+                'trend_data': trend_data,
+                'role': 'Organization Staff' if user.org_role == User.OrgRole.STAFF else 'Organization Admin',
+                'organization': org
+            }
+        else:
+            context = {'reports': CrimeReport.objects.none(), 'role': 'Organization'}
         return render(request, 'dashboard/org_dashboard.html', context)
         
     elif user.is_officer():
@@ -37,31 +85,38 @@ def dashboard_view(request):
         
     elif user.is_admin():
         from actions.models import AuditLog
-        from django.db.models import Count
+        from django.db.models import Count, Avg, F
         import json
         
         # Key Stats
         total_reports = CrimeReport.objects.count()
-        # Pending: Status is PENDING
         pending = CrimeReport.objects.filter(status=CrimeReport.Status.PENDING).count()
-        # Assigned: Has an officer assigned
-        assigned_count = CrimeReport.objects.filter(assigned_officer__isnull=False).count()
-        # Unassigned: No officer
+        active_cases = CrimeReport.objects.filter(status__in=['UNDER_REVIEW', 'ASSIGNED']).count()
+        resolved_cases = CrimeReport.objects.filter(status__in=['RESOLVED', 'CLOSED']).count()
+        
+        # SLA: Average time to resolve (Assumes RESOLVED status implies completion)
+        # Simplified: diff between reported_at and updated_at for resolved cases
+        avg_res_time = CrimeReport.objects.filter(status='RESOLVED').annotate(
+            duration=F('updated_at') - F('reported_at')
+        ).aggregate(Avg('duration'))['duration__avg']
+        
+        # Convert duration to hours/days for display
+        avg_res_display = f"{avg_res_time.days}d {avg_res_time.seconds // 3600}h" if avg_res_time else "N/A"
+
         unassigned_count = CrimeReport.objects.filter(assigned_officer__isnull=True).count()
+        assigned_count = total_reports - unassigned_count
         
         # Chart Data: Reports per status
         status_counts = list(CrimeReport.objects.values('status').annotate(count=Count('status')))
-        labels = [item['status'] for item in status_counts]
+        labels = [dict(CrimeReport.Status.choices).get(item['status'], item['status']) for item in status_counts]
         data = [item['count'] for item in status_counts]
         
-        # Chart 2: Assignment (Keep as is)
+        # Chart 2: Assignment
         distribution_labels = ['Assigned', 'Unassigned']
         distribution_data = [assigned_count, unassigned_count]
 
         # Chart 3: Reports by Category
         category_counts = list(CrimeReport.objects.values('category').annotate(count=Count('category')))
-        # Displayable labels for category choices?
-        # Need to map values to display names.
         cat_map = dict(CrimeReport.Category.choices)
         cat_labels = [cat_map.get(item['category'], item['category']) for item in category_counts]
         cat_data = [item['count'] for item in category_counts]
@@ -84,10 +139,20 @@ def dashboard_view(request):
         # Audit Logs (Recent System Activity)
         recent_logs = AuditLog.objects.select_related('user').order_by('-timestamp')[:10]
         
+        # Performance: Cases per officer
+        officer_stats = User.objects.filter(role=User.Role.OFFICER).annotate(
+            case_count=Count('assigned_cases')
+        ).order_by('-case_count')[:5]
+
+        # Unassigned cases for the "Assignment Panel"
+        unassigned_cases = CrimeReport.objects.filter(assigned_officer__isnull=True).order_by('-reported_at')[:5]
+
         context = {
             'total_reports': total_reports, 
             'pending_cases': pending,
-            'assigned_cases': assigned_count,
+            'active_cases': active_cases,
+            'resolved_cases': resolved_cases,
+            'avg_res_time': avg_res_display,
             'role': 'Administrator',
             'chart_labels': labels,
             'chart_data': data,
@@ -97,7 +162,9 @@ def dashboard_view(request):
             'cat_data': cat_data,
             'trend_labels': trend_labels,
             'trend_data': trend_data,
-            'recent_logs': recent_logs
+            'recent_logs': recent_logs,
+            'officer_stats': officer_stats,
+            'unassigned_cases': unassigned_cases
         }
         return render(request, 'dashboard/admin_dashboard.html', context)
     

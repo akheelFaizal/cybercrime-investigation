@@ -13,8 +13,22 @@ class User(AbstractUser):
         choices=Role.choices, 
         default=Role.CITIZEN
     )
+
+    class OrgRole(models.TextChoices):
+        ADMIN = 'ADMIN', 'Organization Admin'
+        STAFF = 'STAFF', 'Staff Member'
+        VIEWER = 'VIEWER', 'Viewer'
+
+    org_role = models.CharField(
+        max_length=20,
+        choices=OrgRole.choices,
+        null=True,
+        blank=True,
+        help_text="Role within the organization (if applicable)"
+    )
     
     phone_number = models.CharField(max_length=15, blank=True, null=True)
+    alternate_contact = models.CharField(max_length=15, blank=True, null=True)
     address = models.TextField(blank=True, null=True)
     # Link to parent Organization if this user is a staff member
     organization = models.ForeignKey('OrganizationProfile', on_delete=models.SET_NULL, null=True, blank=True, related_name='staff_members')
@@ -30,6 +44,13 @@ class User(AbstractUser):
     
     def is_admin(self):
         return self.role == self.Role.ADMIN or self.is_superuser
+
+    def get_organization(self):
+        if self.is_organization():
+            if hasattr(self, 'org_profile'):
+                return self.org_profile
+            return self.organization
+        return None
 
 class OrganizationProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='org_profile')

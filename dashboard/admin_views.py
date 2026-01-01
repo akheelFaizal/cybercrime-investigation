@@ -81,3 +81,12 @@ class AdminCaseUpdateView(AdminRequiredMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         context['title'] = f'Manage Case #{self.object.id}'
         return context
+class AdminCaseDeleteView(AdminRequiredMixin, DeleteView):
+    model = CrimeReport
+    template_name = 'dashboard/admin/case_confirm_delete.html'
+    success_url = reverse_lazy('admin_case_list')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = f'Delete Case #{self.object.id}'
+        return context

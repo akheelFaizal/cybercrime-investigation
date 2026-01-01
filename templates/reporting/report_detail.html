@@ -1,136 +1,200 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">Case #{{ report.id }} Details</h1>
-    <div>
-        <span
-            class="badge bg-{% if report.status == 'RESOLVED' %}success{% elif report.status == 'PENDING' %}warning{% else %}primary{% endif %} fs-6">
-            {{ report.get_status_display }}
-        </span>
-    </div>
-</div>
-
-<div class="row">
-    <!-- Report Details Column -->
-    <div class="col-md-8">
-        <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">
-                    <i class="bi bi-file-earmark-text"></i> Incident Details
-                </h5>
-                {% if report.status == 'PENDING' %}
-                <span class="badge bg-warning text-dark">Pending</span>
-                {% elif report.status == 'IN_PROGRESS' %}
-                <span class="badge bg-primary">In Progress</span>
-                {% elif report.status == 'RESOLVED' %}
-                <span class="badge bg-success">Resolved</span>
-                {% else %}
-                <span class="badge bg-secondary">{{ report.get_status_display }}</span>
-                {% endif %}
-            </div>
-            <div class="card-body">
-                <h3 class="card-title">{{ report.title }}</h3>
-                <p class="text-muted mb-4">
-                    <i class="bi bi-calendar-event"></i> Occurred: {{ report.incident_date|date:"F d, Y H:i" }} <br>
-                    <i class="bi bi-clock-history"></i> Reported: {{ report.reported_at|date:"F d, Y H:i" }}
-                </p>
-
-                <h6>Description</h6>
-                <p class="card-text">{{ report.description|linebreaks }}</p>
-
-                <hr>
-
-                <h6>Reporter Information</h6>
-                <p class="mb-1"><strong>Name:</strong> {{ report.reporter.get_full_name|default:report.reporter.username
-                    }}</p>
-                <p class="mb-1"><strong>Email:</strong> {{ report.reporter.email }}</p>
-                <p class="mb-0"><strong>Phone:</strong> {{ report.reporter.phone_number|default:"N/A" }}</p>
-            </div>
-        </div>
-        <h6 class="mt-4">Attached Evidence:</h6>
-        {% if report.evidences.all %}
-        <ul class="list-group list-group-flush">
-            {% for evidence in report.evidences.all %}
-            <li class="list-group-item">
-                <i class="bi bi-file-earmark-text me-2"></i>
-                <a href="{{ evidence.file.url }}" target="_blank">Evidence {{ forloop.counter }}</a>
-                <small class="text-muted ms-2">{{ evidence.uploaded_at|date:"M d, Y" }}</small>
-            </li>
-            {% endfor %}
-        </ul>
-        {% else %}
-        <p class="text-muted">No evidence files provided.</p>
-        {% endif %}
-    </div>
-</div>
-
-<!-- Investigation Log -->
-{% if user.is_officer or user.is_admin %}
-<div class="card">
-    <div class="card-header bg-light">
-        <h5 class="mb-0">Investigation Log</h5>
-    </div>
-    <div class="card-body">
-        {% if notes %}
-        {% for note in notes %}
-        <div class="alert alert-secondary">
-            <strong>{{ note.officer.get_full_name|default:note.officer.username }}</strong>
-            <span class="text-muted small"> - {{ note.created_at|date:"M d, Y H:i" }}</span>
-            <hr class="my-1">
-            <p class="mb-0">{{ note.note }}</p>
-        </div>
-        {% endfor %}
-        {% else %}
-        <p class="text-muted">No investigation notes yet.</p>
-        {% endif %}
-    </div>
-</div>
-{% endif %}
-</div>
-
-<!-- Actions Sidebar -->
-<div class="col-md-4">
-    <div class="card mb-3">
-        <div class="card-header bg-primary text-white">
-            <h5 class="mb-0">Reporter Info</h5>
-        </div>
-        <div class="card-body">
-            <p class="mb-1"><strong>Name:</strong> {{ report.reporter.get_full_name|default:report.reporter.username
-                }}</p>
-            <p class="mb-1"><strong>Email:</strong> {{ report.reporter.email }}</p>
-            <p class="mb-0"><strong>Phone:</strong> {{ report.reporter.phone_number|default:"N/A" }}</p>
+<div class="container-fluid">
+    <div
+        class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 border-bottom">
+        <h1 class="h2">Case Management: #{{ report.id }}</h1>
+        <div>
+            <span class="badge bg-secondary me-2">Priority: {{ report.get_priority_display }}</span>
+            <span
+                class="badge bg-{% if report.status == 'RESOLVED' %}success{% elif report.status == 'PENDING' %}warning text-dark{% else %}primary{% endif %} p-2">
+                Status: {{ report.get_status_display }}
+            </span>
         </div>
     </div>
 
-    {% if user.is_officer %}
-    <div class="card">
-        <div class="card-header bg-warning text-dark">
-            <h5 class="mb-0">Officer Actions</h5>
-        </div>
-        <div class="card-body">
-            <form method="post">
-                {% csrf_token %}
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Update Status</label>
-                    <select name="status" class="form-select">
-                        <option value="" selected>Keep Current Status</option>
-                        <option value="UNDER_REVIEW">Under Review</option>
-                        <option value="RESOLVED">Resolved</option>
-                        <option value="REJECTED">Reject Case</option>
-                        <option value="CLOSED">Close Case</option>
-                    </select>
+    <div class="row">
+        <!-- Main Content (Reports & Investigation) -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white font-weight-bold border-0 pt-3">
+                    <i class="bi bi-file-earmark-text text-primary"></i> Report Details
                 </div>
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Add Investigation Note</label>
-                    <textarea name="note" class="form-control" rows="3"
-                        placeholder="Enter findings or updates..."></textarea>
+                <div class="card-body">
+                    <h4 class="card-title fw-bold text-dark">{{ report.title }}</h4>
+                    <p class="text-muted small mb-4">
+                        Filed on {{ report.reported_at|date:"F d, Y" }} at {{ report.reported_at|date:"H:i" }} |
+                        Incident Date: {{ report.incident_date|date:"M d, Y" }}
+                    </p>
+
+                    <h6 class="fw-bold">Incident Description</h6>
+                    <div class="bg-light p-3 rounded mb-4">
+                        {{ report.description|linebreaks }}
+                    </div>
+
+                    <h6 class="fw-bold"><i class="bi bi-paperclip"></i> Evidence & Attachments</h6>
+                    {% if report.evidences.all %}
+                    <div class="row g-2">
+                        {% for evidence in report.evidences.all %}
+                        <div class="col-md-6 col-lg-4">
+                            <div class="card h-100 border text-center p-2">
+                                <i class="bi bi-file-earmark-pdf display-6 text-danger"></i>
+                                <a href="{{ evidence.file.url }}" target="_blank"
+                                    class="small text-truncate mt-2 d-block">Evidence #{{ forloop.counter }}</a>
+                                <small class="text-muted">{{ evidence.uploaded_at|date:"M d" }}</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted small italic">No evidence files provided.</p>
+                    {% endif %}
                 </div>
-                <button type="submit" class="btn btn-primary w-100">Update Case</button>
-            </form>
+            </div>
+
+            <!-- Investigation Timeline & History -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white font-weight-bold">
+                    <ul class="nav nav-tabs card-header-tabs" id="investigationTabs" role="tablist">
+                        <li class="nav-item"><a class="nav-link active" id="notes-tab" data-bs-toggle="tab"
+                                href="#notes">Investigation Notes</a></li>
+                        <li class="nav-item"><a class="nav-link" id="history-tab" data-bs-toggle="tab"
+                                href="#history">Case History</a></li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content">
+                        <!-- Investigation Notes -->
+                        <div class="tab-pane fade show active" id="notes">
+                            {% if report.notes.all %}
+                            <div class="timeline">
+                                {% for note in report.notes.all %}
+                                <div class="mb-3 p-3 border-start border-4 border-info bg-light-subtle">
+                                    <div class="d-flex justify-content-between">
+                                        <strong class="text-primary">{{ note.officer.get_full_name }}</strong>
+                                        <small class="text-muted">{{ note.created_at|date:"M d, Y H:i" }}</small>
+                                    </div>
+                                    <p class="mb-0 mt-2">{{ note.note }}</p>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <p class="text-muted text-center py-4">No investigation notes recorded yet.</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Status History -->
+                        <div class="tab-pane fade" id="history">
+                            <div class="list-group list-group-flush">
+                                {% for item in report.status_history.all|dictsortreversed:"timestamp" %}
+                                <div class="list-group-item px-0">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Status changed to <strong>{{ item.new_status }}</strong></span>
+                                        <small class="text-muted">{{ item.timestamp|date:"M d, H:i" }}</small>
+                                    </div>
+                                    {% if item.remarks %}
+                                    <small class="text-muted d-block">{{ item.remarks }}</small>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                                <div class="list-group-item px-0">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Case Filed</span>
+                                        <small class="text-muted">{{ report.reported_at|date:"M d, H:i" }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar (Info & Actions) -->
+        <div class="col-lg-4">
+            <!-- Reporter Info -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-dark text-white font-weight-bold border-0">
+                    <i class="bi bi-person-lines-fill"></i> Reporter Details
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="text-muted small text-uppercase fw-bold d-block">Reporter Type</label>
+                        {% if report.reporter.get_organization %}
+                        <span class="badge bg-info text-dark">Organization Staff
+                            ({{ report.reporter.get_organization.organization_name }})</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Citizen</span>
+                        {% endif %}
+                    </div>
+                    <p class="mb-1"><strong>Full Name:</strong>
+                        {{ report.reporter.get_full_name|default:report.reporter.username }}</p>
+                    <p class="mb-1"><strong>Email ID:</strong> <a href="mailto:{{ report.reporter.email }}">
+                            {{report.reporter.email }}</a></p>
+                    <p class="mb-1"><strong>Primary Contact:</strong>
+                        {{ report.reporter.phone_number|default:"Not Provided" }}</p>
+                    <p class="mb-0"><strong>Alt. Contact:</strong>
+                        {{ report.reporter.alternate_contact|default:"None" }}</p>
+                </div>
+            </div>
+
+            <!-- Investigator Assignment -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white font-weight-bold">
+                    <i class="bi bi-shield-shaded text-success"></i> Investigator Info
+                </div>
+                <div class="card-body">
+                    {% if report.assigned_officer %}
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-person-badge-fill display-6 me-3 text-secondary"></i>
+                        <div>
+                            <h6 class="mb-0 fw-bold">{{ report.assigned_officer.get_full_name }}</h6>
+                            <p class="text-muted small mb-0">
+                                {{ report.assigned_officer.officer_profile.rank }} - {{
+                                report.assigned_officer.officer_profile.badge_number }}
+                            </p>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning py-2 small">
+                        <i class="bi bi-exclamation-triangle"></i> This case is currently unassigned.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Officer Actions -->
+            {% if user.is_officer or user.is_admin %}
+            <div class="card shadow-sm border-0 mb-4 bg-light">
+                <div class="card-header bg-primary text-white font-weight-bold">
+                    Case Management
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Update Case Status</label>
+                            <select name="status" class="form-select form-select-sm">
+                                <option value="" selected>Current: {{ report.get_status_display }}</option>
+                                <option value="UNDER_REVIEW">Under Review</option>
+                                <option value="ASSIGNED">Assigned</option>
+                                <option value="RESOLVED">Mark as Resolved</option>
+                                <option value="REJECTED">Reject/Invalid</option>
+                                <option value="CLOSED">Final Close</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Add Note / Escalation Remark</label>
+                            <textarea name="note" class="form-control" rows="4"
+                                placeholder="Enter findings, evidence notes..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 shadow-sm">Confirm Update</button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
-    {% endif %}
-</div>
 </div>
 {% endblock %}

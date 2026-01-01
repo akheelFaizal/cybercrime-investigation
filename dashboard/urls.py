@@ -18,4 +18,5 @@ urlpatterns = [
     # Admin Case Management
     path('admin/cases/', admin_views.AdminCaseListView.as_view(), name='admin_case_list'),
     path('admin/cases/<int:pk>/manage/', admin_views.AdminCaseUpdateView.as_view(), name='admin_case_update'),
+    path('admin/cases/<int:pk>/delete/', admin_views.AdminCaseDeleteView.as_view(), name='admin_case_delete'),
 ]

@@ -12,5 +12,6 @@ urlpatterns = [
     # Organization Staff Management
     path('staff/', staff_views.StaffListView.as_view(), name='staff_list'),
     path('staff/add/', staff_views.StaffCreateView.as_view(), name='staff_create'),
+    path('staff/<int:pk>/edit/', staff_views.StaffUpdateView.as_view(), name='staff_update'),
     path('staff/<int:pk>/delete/', staff_views.StaffDeleteView.as_view(), name='staff_delete'),
 ]

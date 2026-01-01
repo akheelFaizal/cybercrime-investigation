@@ -33,6 +33,20 @@ class CrimeReport(models.Model):
         choices=Status.choices, 
         default=Status.PENDING
     )
+
+    class Priority(models.TextChoices):
+        LOW = 'LOW', 'Low'
+        MEDIUM = 'MEDIUM', 'Medium'
+        HIGH = 'HIGH', 'High'
+        CRITICAL = 'CRITICAL', 'Critical'
+
+    priority = models.CharField(
+        max_length=20,
+        choices=Priority.choices,
+        default=Priority.MEDIUM
+    )
+    
+    is_escalated = models.BooleanField(default=False)
     
     reporter = models.ForeignKey(
         User, 
@@ -69,3 +83,14 @@ class InvestigationNote(models.Model):
 
     def __str__(self):
         return f"Note by {self.officer.username} on Report #{self.report.id}"
+
+class CaseStatusHistory(models.Model):
+    report = models.ForeignKey(CrimeReport, on_delete=models.CASCADE, related_name='status_history')
+    previous_status = models.CharField(max_length=20, choices=CrimeReport.Status.choices, null=True, blank=True)
+    new_status = models.CharField(max_length=20, choices=CrimeReport.Status.choices)
+    changed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    remarks = models.TextField(blank=True, null=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Status change for #{self.report.id}: {self.previous_status} -> {self.new_status}"

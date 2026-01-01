@@ -17,6 +17,7 @@
                         <th>Category</th>
                         <th>Status</th>
                         <th>Evidence</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -27,6 +28,8 @@
                         <td>{{ report.get_category_display }}</td>
                         <td>{{ report.get_status_display }}</td>
                         <td>{{ report.evidences.count }} files</td>
+                        <td><a href="{% url 'report_detail' report.id %}" class="btn btn-sm btn-outline-info">View</a>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
