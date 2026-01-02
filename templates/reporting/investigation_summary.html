@@ -60,7 +60,8 @@
             <ul class="list-group list-group-flush">
                 {% for note in notes %}
                 <li class="list-group-item">
-                    <strong>{{ note.created_at|date:"Y-m-d H:i" }} - {{
+                    <strong>
+                        {{ note.created_at|date:"Y-m-d H:i" }} - {{
                         note.officer.get_full_name|default:note.officer.username }}:</strong><br>
                     {{ note.note }}
                 </li>
