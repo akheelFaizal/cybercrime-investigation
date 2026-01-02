@@ -39,13 +39,24 @@
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2">
         <div class="card bg-info text-white shadow-sm border-0">
             <div class="card-body">
-                <h6 class="text-uppercase small font-weight-bold">Avg. Resolution (SLA)</h6>
+                <h6 class="text-uppercase small font-weight-bold">Avg. SLA</h6>
                 <h2 class="mb-0">{{ avg_res_time }}</h2>
             </div>
         </div>
+    </div>
+    <div class="col-md-2">
+        <a href="{% url 'admin_org_approvals' %}" class="text-decoration-none">
+            <div
+                class="card {% if pending_org_count > 0 %}bg-danger animate-pulse{% else %}bg-secondary{% endif %} text-white shadow-sm border-0">
+                <div class="card-body">
+                    <h6 class="text-uppercase small font-weight-bold">Pending Orgs</h6>
+                    <h2 class="mb-0">{{ pending_org_count }}</h2>
+                </div>
+            </div>
+        </a>
     </div>
 </div>
 

@@ -98,6 +98,10 @@ def dashboard_view(request):
         active_cases = CrimeReport.objects.filter(status__in=['UNDER_REVIEW', 'ASSIGNED']).count()
         resolved_cases = CrimeReport.objects.filter(status__in=['RESOLVED', 'CLOSED']).count()
         
+        # Pending Organization Approvals
+        from access_control.models import OrganizationProfile
+        pending_org_count = OrganizationProfile.objects.filter(is_approved=False).count()
+        
         # SLA: Average time to resolve (Assumes RESOLVED status implies completion)
         # Simplified: diff between reported_at and updated_at for resolved cases
         avg_res_time = CrimeReport.objects.filter(status='RESOLVED').annotate(
@@ -174,7 +178,8 @@ def dashboard_view(request):
             'recent_logs': AuditLog.objects.all().order_by('-timestamp')[:5],
             'urgent_reports': CrimeReport.objects.filter(assigned_officer__isnull=True).order_by('-priority')[:5],
             'officer_workload': User.objects.filter(role=User.Role.OFFICER).annotate(case_count=Count('assigned_cases')).order_by('-case_count')[:5],
-            'org_performance': org_stats
+            'org_performance': org_stats,
+            'pending_org_count': pending_org_count
         }
         return render(request, 'dashboard/admin_dashboard.html', context)
     

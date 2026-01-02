@@ -31,9 +31,20 @@ class OrganizationRegistrationForm(UserCreationForm):
         user.org_role = User.OrgRole.ADMIN
         if commit:
             user.save()
-            OrganizationProfile.objects.create(
+            org = OrganizationProfile.objects.create(
                 user=user,
                 organization_name=self.cleaned_data['organization_name'],
                 registration_number=self.cleaned_data['registration_number']
             )
+            
+            # Notify all Admins that a new Org needs approval
+            from actions.utils import send_notification
+            admins = User.objects.filter(role=User.Role.ADMIN)
+            for admin in admins:
+                send_notification(
+                    recipient=admin,
+                    message=f"New organization registration: {org.organization_name} awaits approval.",
+                    link='/dashboard/admin/org-approvals/',
+                    notification_type='INFO'
+                )
         return user
